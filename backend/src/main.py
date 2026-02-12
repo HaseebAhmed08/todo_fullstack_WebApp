@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .api.auth import router as auth_router
 from .api.todos import router as todos_router
 from .api.tasks import router as tasks_router
+from .api.users import router as users_router
 from .database import engine
 # User model removed - Better Auth manages the user table
 from .models.todo import Todo
@@ -54,6 +55,7 @@ app.add_middleware(
 app.include_router(auth_router, prefix="/api")
 app.include_router(todos_router, prefix="/api")
 app.include_router(tasks_router, prefix="/api")
+app.include_router(users_router, prefix="/api")
 
 # Register exception handlers
 app.add_exception_handler(ValidationError, validation_exception_handler)

@@ -12,7 +12,7 @@ export const useAuth = () => {
       email,
       password,
       name,
-      callbackURL: "/tasks",
+      callbackURL: "/login",
     });
     if (result.error) throw new Error(result.error.message || "Failed to sign up");
 
@@ -23,7 +23,7 @@ export const useAuth = () => {
     const result = await signIn.email({
       email,
       password,
-      callbackURL: "/tasks",
+      callbackURL: "/dashboard",
     });
     if (result.error) throw new Error(result.error.message || "Failed to sign in");
 

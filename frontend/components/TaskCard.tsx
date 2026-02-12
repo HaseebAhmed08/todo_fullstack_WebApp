@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
+import { CheckCircle2, Circle, Trash2, Eye, Calendar, Clock } from 'lucide-react';
 
 interface TaskCardProps {
   id: string;
@@ -17,6 +18,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
   title,
   description,
   completed,
+  createdAt,
   onToggleComplete,
   onDelete
 }) => {
@@ -32,72 +34,79 @@ const TaskCard: React.FC<TaskCardProps> = ({
     }
   };
 
+  // Format date
+  const dateFormatted = new Date(createdAt).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric'
+  });
+
   return (
     <div
       className={`
-        bg-white rounded-lg shadow-md p-6 mb-4 transition-all duration-300 ease-in-out transform
-        hover:scale-[1.02] hover:shadow-lg
-        border-l-4 ${completed ? 'border-green-500' : 'border-yellow-custom'}
+        bg-white rounded-2xl border border-slate-200 p-5 transition-all duration-300 group
+        hover:border-yellow-300 hover:shadow-xl hover:shadow-yellow-500/5 hover:-translate-y-1
+        ${completed ? 'bg-slate-50/50' : ''}
       `}
     >
-      <div className="flex justify-between items-start">
-        <div>
-          <h3 className={`text-lg font-semibold ${completed ? 'line-through text-gray-600' : 'text-gray-900'}`}>
-            {title}
-          </h3>
-          {description && (
-            <p className="mt-2 text-gray-700">
-              {description}
-            </p>
-          )}
-        </div>
-
-        <div className="flex space-x-2">
+      <div className="flex justify-between items-start mb-4">
+        <div className="flex items-start space-x-3">
           <button
             onClick={handleToggleComplete}
-            className={`p-2 rounded-full ${
-              completed
-                ? 'bg-green-100 text-green-600 hover:bg-green-200'
-                : 'bg-yellow-100 text-yellow-custom hover:bg-yellow-200'
-            }`}
-            title={completed ? 'Mark as incomplete' : 'Mark as complete'}
-            aria-label={completed ? 'Mark task as incomplete' : 'Mark task as complete'}
+            className={`mt-1 flex-shrink-0 transition-all active:scale-90 ${completed ? 'text-green-500' : 'text-slate-300 hover:text-yellow-500'
+              }`}
           >
-            {completed ? (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-            ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            )}
+            {completed ? <CheckCircle2 className="h-6 w-6" /> : <Circle className="h-6 w-6" />}
           </button>
 
+          <div className="flex flex-col">
+            <h3 className={`font-bold text-lg leading-tight transition-all ${completed ? 'text-slate-400 line-through' : 'text-slate-900 group-hover:text-yellow-600'
+              }`}>
+              {title}
+            </h3>
+            <div className="flex items-center space-x-3 mt-1.5">
+              <span className="flex items-center text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                <Calendar className="h-3 w-3 mr-1" />
+                {dateFormatted}
+              </span>
+              <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${completed ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                }`}>
+                {completed ? 'Success' : 'Active'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="opacity-0 group-hover:opacity-100 flex space-x-1 transition-opacity">
           <button
             onClick={handleDelete}
-            className="p-2 rounded-full bg-red-100 text-red-600 hover:bg-red-200"
-            title="Delete task"
-            aria-label="Delete task"
+            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+            title="Delete Task"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
+            <Trash2 className="h-4 w-4" />
           </button>
         </div>
       </div>
 
-      <div className="mt-4 flex justify-between items-center">
-        <span className={`text-xs px-2 py-1 rounded-full ${completed ? 'bg-green-100 text-green-900' : 'bg-yellow-100 text-yellow-900'}`}>
-          {completed ? 'Completed' : 'Pending'}
-        </span>
+      {description && (
+        <p className={`text-sm mb-5 line-clamp-2 ${completed ? 'text-slate-400' : 'text-slate-600'}`}>
+          {description}
+        </p>
+      )}
 
+      <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
         <Link
           href={`/tasks/${id}`}
-          className="text-sm text-yellow-600 hover:text-yellow-700 font-medium"
+          className="flex items-center space-x-1.5 text-xs font-bold text-slate-400 hover:text-yellow-600 transition-colors"
         >
-          View details →
+          <Eye className="h-3.5 w-3.5" />
+          <span>Details</span>
         </Link>
+
+        <div className="flex -space-x-2">
+          <div className="h-6 w-6 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center text-[8px] font-bold text-slate-500">
+            JD
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -8,7 +8,7 @@ interface LoadingSpinnerProps {
 
 const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   size = 'md',
-  color = 'yellow-custom',
+  color = 'currentColor',
   className = ''
 }) => {
   const sizeClasses = {
@@ -27,7 +27,10 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
     <div className={`flex justify-center items-center ${className}`}>
       <div
         className={`${sizeClasses[size]} ${borderSize[size]} border-current border-t-transparent rounded-full animate-spin`}
-        style={{ borderTopColor: 'transparent' }}
+        style={{ 
+          borderTopColor: 'transparent',
+          borderColor: color !== 'currentColor' ? color : undefined
+        }}
       >
         <span className="sr-only">Loading...</span>
       </div>

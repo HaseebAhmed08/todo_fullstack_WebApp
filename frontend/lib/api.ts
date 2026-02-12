@@ -14,13 +14,18 @@ async function apiRequest<T>(
 
   // Note: Better Auth provides a token in the session or we can use the cookie.
   // For cross-origin FastAPI, we'll use the Authorization header.
-  const token = session?.session.token || (typeof window !== 'undefined' ? localStorage.getItem('better-auth.session-token') : null);
+  const token = session?.session?.token || (typeof window !== 'undefined' ? localStorage.getItem('better-auth.session-token') : null);
+
+  // If no token is available, don't make the request
+  if (!token) {
+    throw new Error('No authentication token available. User may not be logged in.');
+  }
 
   const config: RequestInit = {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` }),
+      'Authorization': `Bearer ${token}`,
       ...options.headers,
     },
   };
@@ -31,10 +36,16 @@ async function apiRequest<T>(
     if (response.status === 401) {
       // Handle unauthorized (session expired)
       console.warn('Session expired or unauthorized');
+      // Optionally clear the session here
+      // await authClient.signOut();
     }
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      // Check if it's a credential validation error
+      if (response.status === 401) {
+        throw new Error('Could not validate credentials. Please log in again.');
+      }
       throw new Error(errorData.detail || `API request failed: ${response.status} ${response.statusText}`);
     }
 
@@ -46,6 +57,7 @@ async function apiRequest<T>(
     return response.json() as Promise<T>;
   } catch (error) {
     console.error(`API request failed: ${endpoint}.`, error);
+    // Re-throw the error to be handled by the calling function
     throw error;
   }
 }
@@ -53,36 +65,53 @@ async function apiRequest<T>(
 // TASK API METHODS
 export const taskApi = {
   // Get all user tasks
-  getTasks: () =>
-    apiRequest('/api/tasks/'),
+  getTasks: (userId: string) =>
+    apiRequest(`/api/${userId}/tasks/`),
 
   // Create a new task
-  createTask: (taskData: { title: string; description?: string; completed?: boolean; user_id: string }) =>
-    apiRequest('/api/tasks/', {
+  createTask: (userId: string, taskData: { title: string; description?: string; completed?: boolean }) =>
+    apiRequest(`/api/${userId}/tasks/`, {
       method: 'POST',
       body: JSON.stringify(taskData),
     }),
 
   // Update a task
-  updateTask: (id: string, taskData: { title?: string; description?: string; completed?: boolean }) =>
-    apiRequest(`/api/tasks/${id}`, {
+  updateTask: (userId: string, id: string, taskData: { title?: string; description?: string; completed?: boolean }) =>
+    apiRequest(`/api/${userId}/tasks/${id}`, {
       method: 'PUT',
       body: JSON.stringify(taskData),
     }),
 
   // Delete a task
-  deleteTask: (id: string) =>
-    apiRequest(`/api/tasks/${id}`, {
+  deleteTask: (userId: string, id: string) =>
+    apiRequest(`/api/${userId}/tasks/${id}`, {
       method: 'DELETE',
     }),
 
   // Get a specific task
-  getTask: (id: string) =>
-    apiRequest(`/api/tasks/${id}`),
+  getTask: (userId: string, id: string) =>
+    apiRequest(`/api/${userId}/tasks/${id}`),
+};
+
+// USER PROFILE API METHODS
+export const userApi = {
+  // Get user profile
+  getProfile: () =>
+    apiRequest('/api/auth/me'),
+
+  // Update user profile
+  updateProfile: (userData: { name?: string; email?: string }) =>
+    apiRequest('/api/users/me', {
+      method: 'PUT',
+      body: JSON.stringify(userData),
+    }),
 };
 
 // GENERIC ERROR HANDLING
 export const handleApiError = (error: any): string => {
+  if (error.message && error.message.includes('No authentication token available')) {
+    return 'Authentication required. Please log in.';
+  }
   if (error instanceof TypeError && error.message.includes('fetch')) {
     return 'Network error. Please check your connection.';
   }

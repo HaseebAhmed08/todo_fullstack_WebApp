@@ -100,7 +100,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         email: session.user.email,
         name: session.user.name || '',
         createdAt: new Date(session.user.createdAt),
-        updatedAt: new Date(),
+        updatedAt: new Date(session.user.updatedAt || session.user.createdAt),
       };
       dispatch({ type: 'SET_USER', payload: user });
     } else {
