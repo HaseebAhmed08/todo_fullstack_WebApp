@@ -96,12 +96,18 @@ async def conflict_exception_handler(request: Request, exc: ConflictError):
 
 async def general_exception_handler(request: Request, exc: Exception):
     """Handle general exceptions."""
+    # Print the actual error for debugging
+    import traceback
+    print(f"General exception occurred: {exc}")
+    print(f"Exception type: {type(exc)}")
+    print(f"Traceback: {traceback.format_exc()}")
+    
     return JSONResponse(
         status_code=500,
         content={
             "error": {
                 "code": "INTERNAL_ERROR",
-                "message": "An internal server error occurred"
+                "message": f"An internal server error occurred: {str(exc)}"
             }
         }
     )

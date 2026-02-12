@@ -43,7 +43,7 @@ const SignupPage: React.FC = () => {
 
     try {
       await signUp(formData.name, formData.email, formData.password);
-      router.push('/login');
+      router.push('/tasks');
     } catch (err: any) {
       setError(err.message || 'An error occurred during signup.');
     }
@@ -140,7 +140,7 @@ const SignupPage: React.FC = () => {
           <div className="text-center mt-4">
             <p className="text-sm text-gray-600">
               Already have an account?{' '}
-              <Link href="/signin" className="font-semibold text-yellow-600 hover:text-yellow-700 transition-colors">
+              <Link href="/login" className="font-semibold text-yellow-600 hover:text-yellow-700 transition-colors">
                 Sign in instead
               </Link>
             </p>

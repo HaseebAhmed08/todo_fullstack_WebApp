@@ -3,10 +3,10 @@ from sqlmodel import Session
 from typing import List, Optional
 from datetime import datetime
 from ..database import get_session_no_commit
-from ..middleware.auth import get_current_user
-from ..models.todo import TodoCreate, TodoRead, TodoUpdate
+from ..api.auth import get_current_user # Updated import
+from ..models.todo import Todo, TodoCreate, TodoRead, TodoUpdate
 from ..services.todo_service import TodoService
-from ..models.user import UserRead
+from ..models.user import User # Imported User model for type hinting
 import logging
 
 router = APIRouter(prefix="/todos", tags=["Todos"])
@@ -18,13 +18,13 @@ def get_todos(
     status: Optional[str] = None,
     sort_by: Optional[str] = "date",
     sort_order: Optional[str] = "asc",
-    current_user: UserRead = Depends(get_current_user),
+    current_user: User = Depends(get_current_user), # Updated type hint
     session: Session = Depends(get_session_no_commit)
 ):
     """
     Retrieve user's todo list with optional filtering and pagination.
     """
-    user_id = current_user["user_id"]
+    user_id = current_user.id # Access .id directly
 
     try:
         todos = TodoService.get_todos_by_user(
@@ -45,21 +45,23 @@ def get_todos(
 @router.post("/", response_model=TodoRead)
 def create_todo(
     todo_data: TodoCreate,
-    current_user: UserRead = Depends(get_current_user),
+    current_user: User = Depends(get_current_user), # Updated type hint
     session: Session = Depends(get_session_no_commit)
 ):
     """
     Create a new todo item.
     """
-    user_id = current_user["user_id"]
-
-    # Ensure the user can only create todos for themselves
-    if todo_data.user_id != user_id:
-        raise HTTPException(status_code=403, detail="Not authorized to create todo for another user")
+    user_id = current_user.id # Access .id directly
 
     try:
-        db_todo = TodoService.create_todo(session, todo_data)
+        # Create a Todo instance with the user_id from the authenticated user
+        db_todo = Todo(
+            **todo_data.dict(), # Unpack the TodoCreate data
+            user_id=user_id # Assign the authenticated user's ID
+        )
+        session.add(db_todo)
         session.commit()
+        session.refresh(db_todo)
         return db_todo
     except Exception as e:
         session.rollback()
@@ -70,13 +72,13 @@ def create_todo(
 @router.get("/{id}", response_model=TodoRead)
 def get_todo(
     id: str,
-    current_user: UserRead = Depends(get_current_user),
+    current_user: User = Depends(get_current_user), # Updated type hint
     session: Session = Depends(get_session_no_commit)
 ):
     """
     Retrieve specific todo item.
     """
-    user_id = current_user["user_id"]
+    user_id = current_user.id # Access .id directly
 
     try:
         db_todo = TodoService.get_todo_by_id(session, id, user_id)
@@ -95,13 +97,13 @@ def get_todo(
 def update_todo(
     id: str,
     todo_update: TodoUpdate,
-    current_user: UserRead = Depends(get_current_user),
+    current_user: User = Depends(get_current_user), # Updated type hint
     session: Session = Depends(get_session_no_commit)
 ):
     """
     Update specific todo item.
     """
-    user_id = current_user["user_id"]
+    user_id = current_user.id # Access .id directly
 
     try:
         db_todo = TodoService.update_todo(session, id, user_id, todo_update)
@@ -121,13 +123,13 @@ def update_todo(
 @router.delete("/{id}")
 def delete_todo(
     id: str,
-    current_user: UserRead = Depends(get_current_user),
+    current_user: User = Depends(get_current_user), # Updated type hint
     session: Session = Depends(get_session_no_commit)
 ):
     """
     Delete specific todo item.
     """
-    user_id = current_user["user_id"]
+    user_id = current_user.id # Access .id directly
 
     try:
         success = TodoService.delete_todo(session, id, user_id)
@@ -147,13 +149,13 @@ def delete_todo(
 @router.patch("/{id}/toggle", response_model=TodoRead)
 def toggle_todo_completion(
     id: str,
-    current_user: UserRead = Depends(get_current_user),
+    current_user: User = Depends(get_current_user), # Updated type hint
     session: Session = Depends(get_session_no_commit)
 ):
     """
     Toggle completion status of specific todo.
     """
-    user_id = current_user["user_id"]
+    user_id = current_user.id # Access .id directly
 
     try:
         db_todo = TodoService.toggle_todo_completion(session, id, user_id)
@@ -174,14 +176,14 @@ def toggle_todo_completion(
 def bulk_operations(
     operation: str,
     ids: List[str],
-    current_user: UserRead = Depends(get_current_user),
+    current_user: User = Depends(get_current_user), # Updated type hint
     session: Session = Depends(get_session_no_commit),
     data: Optional[TodoUpdate] = None
 ):
     """
     Perform bulk operations on multiple todos.
     """
-    user_id = current_user["user_id"]
+    user_id = current_user.id # Access .id directly
 
     try:
         if operation == "update":

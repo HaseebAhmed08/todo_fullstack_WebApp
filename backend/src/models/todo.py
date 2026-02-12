@@ -24,7 +24,6 @@ class TodoCreate(TodoBase):
     Schema for creating a new todo.
     """
     title: str  # Required field
-    user_id: str  # Required field
 
 class TodoRead(TodoBase):
     """

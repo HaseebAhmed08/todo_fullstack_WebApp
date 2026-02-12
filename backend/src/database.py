@@ -18,6 +18,20 @@ if not DATABASE_URL:
 else:
     print(f"Using database: {DATABASE_URL}")
 
+# Determine if using PostgreSQL or SQLite to set appropriate connection args
+if DATABASE_URL.startswith("postgresql://"):
+    # PostgreSQL-specific connection arguments
+    connect_kwargs = {
+        "connect_timeout": 10,
+        "keepalives_idle": 30,
+        "keepalives_interval": 10,
+        "keepalives_count": 3,
+        "sslmode": "require"
+    }
+else:
+    # SQLite-specific connection arguments
+    connect_kwargs = {"check_same_thread": False}
+
 # Create the engine with connection pooling for Neon Serverless
 engine = create_engine(
     DATABASE_URL,
@@ -27,12 +41,7 @@ engine = create_engine(
     max_overflow=10,
     pool_pre_ping=True,  # Verify connections before use
     pool_recycle=300,    # Recycle connections every 5 minutes
-    connect_args={
-        "connect_timeout": 10,
-        "keepalives_idle": 30,
-        "keepalives_interval": 10,
-        "keepalives_count": 3
-    }
+    connect_args=connect_kwargs
 )
 
 def get_session() -> Generator[Session, None, None]:

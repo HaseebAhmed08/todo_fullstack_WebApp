@@ -7,7 +7,7 @@ import Link from 'next/link';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ErrorAlert from '@/components/ErrorAlert';
 
-const SigninPage: React.FC = () => {
+const LoginPage: React.FC = () => {
     const [formData, setFormData] = useState({
         email: '',
         password: '',
@@ -36,9 +36,9 @@ const SigninPage: React.FC = () => {
 
         try {
             await signIn(formData.email, formData.password);
-            // Better Auth redirects via callbackURL if configured, 
+            // Better Auth redirects via callbackURL if configured,
             // but we force it here just in case if not handled.
-            router.push('/dashboard');
+            router.push('/tasks');
         } catch (err: any) {
             setError(err.message || 'An error occurred during sign in.');
         }
@@ -120,4 +120,4 @@ const SigninPage: React.FC = () => {
     );
 };
 
-export default SigninPage;
+export default LoginPage;

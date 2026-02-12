@@ -9,25 +9,7 @@ class TodoService:
     Handles all business logic related to todo management.
     """
 
-    @staticmethod
-    def create_todo(session: Session, todo_data: TodoCreate) -> Todo:
-        """
-        Create a new todo item for a user.
-        """
-        db_todo = Todo(
-            title=todo_data.title,
-            description=todo_data.description,
-            completed=todo_data.completed,
-            priority=todo_data.priority,
-            due_date=todo_data.due_date,
-            user_id=todo_data.user_id
-        )
 
-        session.add(db_todo)
-        session.commit()
-        session.refresh(db_todo)
-
-        return db_todo
 
     @staticmethod
     def get_todos_by_user(

@@ -12,7 +12,7 @@ const Header: React.FC = () => {
   const handleLogout = async () => {
     try {
       await signOut();
-      router.push('/signin'); // Redirect to sign in page after logout
+      router.push('/login'); // Redirect to log in page after logout
     } catch (error) {
       console.error('Logout error:', error);
     }
@@ -61,7 +61,7 @@ const Header: React.FC = () => {
             ) : (
               <div className="flex space-x-4">
                 <Link
-                  href="/signin"
+                  href="/login"
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-yellow-custom hover:bg-yellow-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-custom"
                 >
                   Sign In

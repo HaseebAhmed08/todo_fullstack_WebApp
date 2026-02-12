@@ -43,7 +43,7 @@ const TaskDetailPage: React.FC = () => {
       if (!taskId || !session || !session.token) {
         // Redirect to login if not authenticated
         if (typeof window !== 'undefined') {
-          window.location.href = '/signin';
+          window.location.href = '/login';
         }
         return;
       }

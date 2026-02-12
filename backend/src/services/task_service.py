@@ -11,7 +11,7 @@ class TaskService:
     """
 
     @staticmethod
-    def create_task(session: Session, task_data: TaskCreate) -> Task:
+    def create_task(session: Session, task_data: TaskCreate, user_id: str) -> Task:
         """
         Create a new task for a specific user.
         """
@@ -21,7 +21,7 @@ class TaskService:
                 title=task_data.title,
                 description=task_data.description,
                 completed=task_data.completed,
-                user_id=task_data.user_id  # Ensure the task is linked to the correct user
+                user_id=user_id  # Assign the user_id passed as an argument
             )
 
             # Add to session and commit
@@ -31,7 +31,7 @@ class TaskService:
 
             return db_task
         except Exception as e:
-            logging.error(f"Error creating task for user {task_data.user_id}: {str(e)}")
+            logging.error(f"Error creating task for user {user_id}: {str(e)}")
             session.rollback()
             raise e
 

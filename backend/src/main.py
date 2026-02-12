@@ -4,7 +4,7 @@ from .api.auth import router as auth_router
 from .api.todos import router as todos_router
 from .api.tasks import router as tasks_router
 from .database import engine
-from .models.user import User
+# User model removed - Better Auth manages the user table
 from .models.todo import Todo
 from .models.task import Task
 from sqlmodel import SQLModel
@@ -32,9 +32,19 @@ app = FastAPI(
 )
 
 # Add CORS middleware
+origins = []
+if settings.BACKEND_CORS_ORIGINS == "*":
+    origins.append("*")
+else:
+    origins.extend(settings.BACKEND_CORS_ORIGINS.split(","))
+
+# Ensure http://localhost:3000 is always allowed for frontend development
+if "http://localhost:3000" not in origins:
+    origins.append("http://localhost:3000")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.BACKEND_CORS_ORIGINS.split(",") if settings.BACKEND_CORS_ORIGINS != "*" else ["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -59,7 +69,16 @@ def on_startup():
     """
     Initialize the database tables on startup.
     """
-    SQLModel.metadata.create_all(engine)
+    print(f"Using database: {settings.DATABASE_URL}")
+    print("Creating database tables...")
+    try:
+        # Create tables with checkfirst=False to force recreation if needed
+        SQLModel.metadata.create_all(engine)
+        print("Database tables created successfully!")
+    except Exception as e:
+        print(f"Error creating database tables: {e}")
+        import traceback
+        traceback.print_exc()
 
 @app.get("/")
 def read_root():
