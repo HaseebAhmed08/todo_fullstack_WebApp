@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir)",
+      "Bash(npm install)",
+      "Bash(npm install better-auth@^1.4.17 @better-auth/react@^1.4.17)"
+    ]
+  }
+}

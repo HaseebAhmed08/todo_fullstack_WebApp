@@ -1,0 +1,195 @@
+# API Contract: Task Management
+
+## Overview
+This document defines the API contracts for task management operations, focusing on reliability and proper authentication handling.
+
+## Authentication
+All endpoints require a valid JWT token in the Authorization header:
+```
+Authorization: Bearer {jwt-token}
+```
+
+## Endpoints
+
+### Task Operations
+
+#### GET /tasks
+Retrieve all tasks for the authenticated user
+
+**Request:**
+```
+GET /tasks
+Authorization: Bearer {jwt-token}
+```
+
+**Response:**
+```
+200 OK
+{
+  "tasks": [
+    {
+      "id": "uuid-string",
+      "title": "Task title",
+      "description": "Task description",
+      "completed": false,
+      "created_at": "2023-01-01T00:00:00Z",
+      "updated_at": "2023-01-01T00:00:00Z"
+    }
+  ]
+}
+```
+
+#### POST /tasks
+Create a new task for the authenticated user
+
+**Request:**
+```
+POST /tasks
+Authorization: Bearer {jwt-token}
+Content-Type: application/json
+
+{
+  "title": "New task title",
+  "description": "New task description"
+}
+```
+
+**Response:**
+```
+201 Created
+{
+  "id": "uuid-string",
+  "title": "New task title",
+  "description": "New task description",
+  "completed": false,
+  "created_at": "2023-01-01T00:00:00Z",
+  "updated_at": "2023-01-01T00:00:00Z"
+}
+```
+
+#### PUT /tasks/{id}
+Update an existing task
+
+**Request:**
+```
+PUT /tasks/{id}
+Authorization: Bearer {jwt-token}
+Content-Type: application/json
+
+{
+  "title": "Updated task title",
+  "description": "Updated task description",
+  "completed": true
+}
+```
+
+**Response:**
+```
+200 OK
+{
+  "id": "uuid-string",
+  "title": "Updated task title",
+  "description": "Updated task description",
+  "completed": true,
+  "created_at": "2023-01-01T00:00:00Z",
+  "updated_at": "2023-01-02T00:00:00Z"
+}
+```
+
+#### DELETE /tasks/{id}
+Delete a task
+
+**Request:**
+```
+DELETE /tasks/{id}
+Authorization: Bearer {jwt-token}
+```
+
+**Response:**
+```
+204 No Content
+```
+
+### Authentication Operations
+
+#### POST /auth/login
+Authenticate user and return JWT token
+
+**Request:**
+```
+POST /auth/login
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "user-password"
+}
+```
+
+**Response:**
+```
+200 OK
+{
+  "access_token": "jwt-token-string",
+  "token_type": "bearer"
+}
+```
+
+#### POST /auth/register
+Register a new user
+
+**Request:**
+```
+POST /auth/register
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "user-password"
+}
+```
+
+**Response:**
+```
+200 OK
+{
+  "access_token": "jwt-token-string",
+  "token_type": "bearer"
+}
+```
+
+## Error Responses
+All endpoints may return the following error responses:
+
+```
+400 Bad Request
+{
+  "detail": "Invalid input data"
+}
+
+401 Unauthorized
+{
+  "detail": "Authentication required"
+}
+
+403 Forbidden
+{
+  "detail": "Access denied"
+}
+
+404 Not Found
+{
+  "detail": "Resource not found"
+}
+
+500 Internal Server Error
+{
+  "detail": "An unexpected error occurred"
+}
+```
+
+## Database Transaction Requirements
+- All write operations (POST, PUT, DELETE) must be wrapped in database transactions
+- Proper rollback mechanisms must be implemented for failed operations
+- Connection pooling must be used to handle concurrent requests efficiently
+- JWT token validation must occur before any database operations

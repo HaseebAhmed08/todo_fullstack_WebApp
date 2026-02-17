@@ -1,0 +1,398 @@
+# Enhanced API Contract: Task Management System
+
+## Overview
+This document defines the enhanced API contracts for task management operations, focusing on reliability, proper authentication handling, and improved error responses.
+
+## Authentication
+All endpoints require a valid JWT token in the Authorization header:
+```
+Authorization: Bearer {jwt-token}
+```
+
+## Error Response Format
+All endpoints return standardized error responses:
+```json
+{
+  "detail": "Human-readable error message",
+  "error_code": "SYSTEM_DEFINED_ERROR_CODE",
+  "timestamp": "ISO 8601 formatted timestamp",
+  "request_id": "Unique request identifier for tracing"
+}
+```
+
+## Endpoints
+
+### Task Operations
+
+#### GET /todos
+Retrieve all tasks for the authenticated user with optional filtering and pagination
+
+**Request:**
+```
+GET /todos?skip=0&limit=20&status=active&sort_by=date&sort_order=asc
+Authorization: Bearer {jwt-token}
+```
+
+**Parameters:**
+- skip: Number of records to skip (default: 0)
+- limit: Maximum number of records to return (default: 20, max: 100)
+- status: Filter by status (optional: 'active', 'completed')
+- sort_by: Sort field (optional: 'date', 'priority', 'title')
+- sort_order: Sort direction (optional: 'asc', 'desc')
+
+**Response:**
+```
+200 OK
+{
+  "todos": [
+    {
+      "id": "uuid-string",
+      "title": "Task title",
+      "description": "Task description",
+      "completed": false,
+      "user_id": "user-id-string",
+      "created_at": "2023-01-01T00:00:00Z",
+      "updated_at": "2023-01-01T00:00:00Z"
+    }
+  ],
+  "total_count": 15,
+  "page_info": {
+    "current_page": 1,
+    "total_pages": 1,
+    "has_next": false,
+    "has_previous": false
+  }
+}
+```
+
+#### POST /todos
+Create a new task for the authenticated user
+
+**Request:**
+```
+POST /todos
+Authorization: Bearer {jwt-token}
+Content-Type: application/json
+
+{
+  "title": "New task title",
+  "description": "New task description",
+  "completed": false,
+  "user_id": "authenticated-user-id"
+}
+```
+
+**Response:**
+```
+201 Created
+{
+  "id": "uuid-string",
+  "title": "New task title",
+  "description": "New task description",
+  "completed": false,
+  "user_id": "authenticated-user-id",
+  "created_at": "2023-01-01T00:00:00Z",
+  "updated_at": "2023-01-01T00:00:00Z"
+}
+```
+
+#### GET /todos/{id}
+Retrieve a specific task for the authenticated user
+
+**Request:**
+```
+GET /todos/{id}
+Authorization: Bearer {jwt-token}
+```
+
+**Response:**
+```
+200 OK
+{
+  "id": "uuid-string",
+  "title": "Task title",
+  "description": "Task description",
+  "completed": false,
+  "user_id": "user-id-string",
+  "created_at": "2023-01-01T00:00:00Z",
+  "updated_at": "2023-01-02T00:00:00Z"
+}
+```
+
+#### PUT /todos/{id}
+Update an existing task
+
+**Request:**
+```
+PUT /todos/{id}
+Authorization: Bearer {jwt-token}
+Content-Type: application/json
+
+{
+  "title": "Updated task title",
+  "description": "Updated task description",
+  "completed": true
+}
+```
+
+**Response:**
+```
+200 OK
+{
+  "id": "uuid-string",
+  "title": "Updated task title",
+  "description": "Updated task description",
+  "completed": true,
+  "user_id": "user-id-string",
+  "created_at": "2023-01-01T00:00:00Z",
+  "updated_at": "2023-01-02T00:00:00Z"
+}
+```
+
+#### PATCH /todos/{id}/toggle
+Toggle the completion status of a task
+
+**Request:**
+```
+PATCH /todos/{id}/toggle
+Authorization: Bearer {jwt-token}
+```
+
+**Response:**
+```
+200 OK
+{
+  "id": "uuid-string",
+  "title": "Task title",
+  "description": "Task description",
+  "completed": true,  // Toggled from false to true
+  "user_id": "user-id-string",
+  "created_at": "2023-01-01T00:00:00Z",
+  "updated_at": "2023-01-02T00:00:00Z"
+}
+```
+
+#### DELETE /todos/{id}
+Delete a task
+
+**Request:**
+```
+DELETE /todos/{id}
+Authorization: Bearer {jwt-token}
+```
+
+**Response:**
+```
+204 No Content
+```
+
+### Bulk Operations
+
+#### POST /todos/bulk
+Perform bulk operations on multiple tasks
+
+**Request:**
+```
+POST /todos/bulk
+Authorization: Bearer {jwt-token}
+Content-Type: application/json
+
+{
+  "operation": "update",  // "update", "delete", "complete", "uncomplete"
+  "ids": ["id1", "id2", "id3"],
+  "data": {
+    "completed": true
+  }
+}
+```
+
+**Response:**
+```
+200 OK
+{
+  "success": true,
+  "affected_count": 3,
+  "operation": "complete"
+}
+```
+
+### Authentication Operations
+
+#### POST /auth/register
+Register a new user
+
+**Request:**
+```
+POST /auth/register
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "name": "User Name",
+  "password": "user-password"
+}
+```
+
+**Response:**
+```
+200 OK
+{
+  "id": "user-uuid",
+  "email": "user@example.com",
+  "name": "User Name",
+  "created_at": "2023-01-01T00:00:00Z",
+  "updated_at": "2023-01-01T00:00:00Z",
+  "last_login_at": null
+}
+```
+
+#### POST /auth/login
+Authenticate user and return JWT token
+
+**Request:**
+```
+POST /auth/login
+Content-Type: application/x-www-form-urlencoded
+
+email=user@example.com&password=user-password
+```
+
+**Response:**
+```
+200 OK
+{
+  "token": "jwt-token-string",
+  "token_type": "bearer",
+  "expires_in": 1800,
+  "user": {
+    "id": "user-uuid",
+    "email": "user@example.com",
+    "name": "User Name"
+  }
+}
+```
+
+### Health Check Operations
+
+#### GET /
+Root endpoint for basic health check
+
+**Response:**
+```
+200 OK
+{
+  "message": "Welcome to the Todo App Backend API",
+  "version": "1.0.0",
+  "status": "operational"
+}
+```
+
+#### GET /health
+Detailed health check endpoint
+
+**Response:**
+```
+200 OK
+{
+  "status": "healthy",
+  "service": "todo-backend-api",
+  "version": "1.0.0",
+  "timestamp": "2023-01-01T00:00:00Z"
+}
+```
+
+#### GET /db-health
+Database-specific health check endpoint
+
+**Response:**
+```
+200 OK
+{
+  "status": "healthy",
+  "service": "todo-backend-api",
+  "database": "connected",
+  "timestamp": "2023-01-01T00:00:00Z",
+  "connection_pool": {
+    "size": 5,
+    "active_connections": 2,
+    "idle_connections": 3
+  }
+}
+```
+
+## Error Responses
+All endpoints may return the following error responses:
+
+```
+400 Bad Request
+{
+  "detail": "Invalid input data",
+  "error_code": "VALIDATION_ERROR",
+  "timestamp": "2023-01-01T00:00:00Z",
+  "request_id": "req-uuid"
+}
+
+401 Unauthorized
+{
+  "detail": "Authentication required",
+  "error_code": "AUTHENTICATION_REQUIRED",
+  "timestamp": "2023-01-01T00:00:00Z",
+  "request_id": "req-uuid"
+}
+
+403 Forbidden
+{
+  "detail": "Access denied - insufficient permissions",
+  "error_code": "INSUFFICIENT_PERMISSIONS",
+  "timestamp": "2023-01-01T00:00:00Z",
+  "request_id": "req-uuid"
+}
+
+404 Not Found
+{
+  "detail": "Resource not found",
+  "error_code": "RESOURCE_NOT_FOUND",
+  "timestamp": "2023-01-01T00:00:00Z",
+  "request_id": "req-uuid"
+}
+
+409 Conflict
+{
+  "detail": "Resource already exists",
+  "error_code": "RESOURCE_CONFLICT",
+  "timestamp": "2023-01-01T00:00:00Z",
+  "request_id": "req-uuid"
+}
+
+422 Unprocessable Entity
+{
+  "detail": "Validation error in request body",
+  "error_code": "VALIDATION_ERROR",
+  "timestamp": "2023-01-01T00:00:00Z",
+  "request_id": "req-uuid"
+}
+
+500 Internal Server Error
+{
+  "detail": "An unexpected error occurred",
+  "error_code": "INTERNAL_ERROR",
+  "timestamp": "2023-01-01T00:00:00Z",
+  "request_id": "req-uuid"
+}
+
+503 Service Unavailable
+{
+  "detail": "Database connection unavailable",
+  "error_code": "DATABASE_UNAVAILABLE",
+  "timestamp": "2023-01-01T00:00:00Z",
+  "request_id": "req-uuid"
+}
+```
+
+## Database Transaction Requirements
+- All write operations (POST, PUT, DELETE, PATCH) must be wrapped in database transactions
+- Proper rollback mechanisms must be implemented for failed operations
+- Connection pooling must be used to handle concurrent requests efficiently
+- JWT token validation must occur before any database operations
+- User authorization checks must happen within the transaction boundary
+- Error handling must include both application and database-level errors
