@@ -69,7 +69,7 @@ const TaskDetailPage: React.FC = () => {
     setError(null);
 
     try {
-      updateTask(taskId, {
+      await updateTask(taskId, {
         title: formData.title,
         description: formData.description,
         completed: formData.completed,
@@ -77,8 +77,7 @@ const TaskDetailPage: React.FC = () => {
       router.push('/dashboard');
     } catch (err: any) {
       console.error('Error updating task:', err);
-      setError('Failed to update task');
-    } finally {
+      setError(err.message || 'Failed to update task');
       setUpdating(false);
     }
   };
@@ -97,11 +96,11 @@ const TaskDetailPage: React.FC = () => {
     setError(null);
 
     try {
-      deleteTask(taskId);
+      await deleteTask(taskId);
       router.push('/dashboard');
     } catch (err: any) {
       console.error('Error deleting task:', err);
-      setError('Failed to delete task');
+      setError(err.message || 'Failed to delete task');
       setDeleting(false);
     }
   };

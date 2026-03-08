@@ -4,15 +4,25 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 
-interface User {
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+export interface User {
   id: string;
   email: string;
   name: string;
 }
 
-interface Session {
+export interface Session {
   user: User;
-  expires?: string;
+}
+
+interface LoginResponse {
+  access_token: string;
+  token_type: string;
+}
+
+interface AuthError {
+  detail: string;
 }
 
 export const useAuth = () => {
@@ -35,10 +45,15 @@ export const useAuth = () => {
     }
   }, []);
 
+  // Get token from localStorage
+  const getToken = useCallback(() => {
+    return localStorage.getItem('token');
+  }, []);
+
   // Check for existing session on mount
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    
+    const token = getToken();
+
     if (token) {
       const user = decodeToken(token);
       if (user) {
@@ -47,13 +62,13 @@ export const useAuth = () => {
         localStorage.removeItem('token');
       }
     }
-    
+
     setLoading(false);
-  }, [decodeToken]);
+  }, [getToken, decodeToken]);
 
   const signIn = async (email: string, password: string) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/auth/login`, {
+      const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -62,11 +77,11 @@ export const useAuth = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        const errorData: AuthError = await response.json().catch(() => ({ detail: 'Login failed' }));
         throw new Error(errorData.detail || `Login failed: ${response.status}`);
       }
 
-      const data = await response.json();
+      const data: LoginResponse = await response.json();
 
       localStorage.setItem('token', data.access_token);
       const user = decodeToken(data.access_token);
@@ -75,7 +90,7 @@ export const useAuth = () => {
         setSession({ user });
       }
 
-      return data;
+      return { user };
     } catch (err: any) {
       if (err.message.includes('fetch') || err.message.includes('NetworkError')) {
         throw new Error('Cannot connect to server. Please make sure the backend is running on http://localhost:8000');
@@ -86,7 +101,7 @@ export const useAuth = () => {
 
   const signUp = async (name: string, email: string, password: string) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/auth/signup`, {
+      const response = await fetch(`${API_URL}/api/auth/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -95,7 +110,7 @@ export const useAuth = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        const errorData: AuthError = await response.json().catch(() => ({ detail: 'Signup failed' }));
         throw new Error(errorData.detail || `Signup failed: ${response.status}`);
       }
 

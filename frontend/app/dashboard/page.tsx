@@ -11,7 +11,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 
 const DashboardPage: React.FC = () => {
   const { session, loading: authLoading } = useAuth();
-  const { tasks, loading, error, addTask, updateTask, deleteTask, toggleComplete } = useTasks(session?.user?.id || null);
+  const { tasks, loading, error, addTask, deleteTask, toggleComplete } = useTasks(session?.user?.id || null);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDescription, setNewTaskDescription] = useState('');
   const [creating, setCreating] = useState(false);
@@ -34,27 +34,40 @@ const DashboardPage: React.FC = () => {
     setFormError(null);
 
     try {
-      const newTask = addTask(newTaskTitle, newTaskDescription);
-
-      if (newTask) {
-        setNewTaskTitle('');
-        setNewTaskDescription('');
-      }
+      await addTask(newTaskTitle, newTaskDescription);
+      setNewTaskTitle('');
+      setNewTaskDescription('');
     } catch (err: any) {
       console.error('Error creating task:', err);
-      setFormError('Failed to create task');
+      setFormError(err.message || 'Failed to create task');
     } finally {
       setCreating(false);
     }
   };
 
-  const handleToggleComplete = (id: string) => {
-    toggleComplete(id);
+  const handleToggleComplete = async (id: string) => {
+    try {
+      await toggleComplete(id);
+    } catch (err: any) {
+      console.error('Error toggling task:', err);
+    }
   };
 
-  const handleDeleteTask = (id: string) => {
-    deleteTask(id);
+  const handleDeleteTask = async (id: string) => {
+    try {
+      await deleteTask(id);
+    } catch (err: any) {
+      console.error('Error deleting task:', err);
+    }
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
 
   return (
     <ProtectedRoute>

@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
 export interface Task {
   id: string;
   title: string;
@@ -12,14 +14,56 @@ export interface Task {
   updatedAt: string;
 }
 
-const STORAGE_KEY = 'todo_tasks';
+interface ApiError {
+  detail: string;
+}
+
+// Get token from localStorage
+const getToken = () => {
+  return localStorage.getItem('token');
+};
+
+// Generic API request function with JWT token
+async function apiRequest<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const token = getToken();
+
+  if (!token) {
+    throw new Error('No authentication token available. Please log in.');
+  }
+
+  const config: RequestInit = {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+      ...options.headers,
+    },
+  };
+
+  const response = await fetch(`${API_URL}${endpoint}`, config);
+
+  if (!response.ok) {
+    const errorData: ApiError = await response.json().catch(() => ({ detail: 'Request failed' }));
+    throw new Error(errorData.detail || `API request failed: ${response.status}`);
+  }
+
+  // For responses with no content (like DELETE), return early
+  if (response.status === 204) {
+    return {} as T;
+  }
+
+  return response.json() as Promise<T>;
+}
 
 export const useTasks = (userId: string | null) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Load tasks from localStorage on mount
+  // Load tasks from API on mount
   useEffect(() => {
     if (!userId) {
       setTasks([]);
@@ -27,101 +71,149 @@ export const useTasks = (userId: string | null) => {
       return;
     }
 
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const allTasks = JSON.parse(stored);
-        // Filter tasks for this user
-        const userTasks = allTasks.filter((t: Task) => t.userId === userId);
-        setTasks(userTasks);
+    const fetchTasks = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        // Fetch todos from backend (using /api/todos/ endpoint)
+        const fetchedTasks = await apiRequest<Task[]>('/api/todos/');
+        
+        // Transform backend format to frontend format
+        const normalizedTasks: Task[] = fetchedTasks.map((t: any) => ({
+          id: t.id,
+          title: t.title,
+          description: t.description || '',
+          completed: t.completed,
+          userId: t.user_id,
+          createdAt: t.created_at,
+          updatedAt: t.updated_at,
+        }));
+        
+        setTasks(normalizedTasks);
+      } catch (err: any) {
+        console.error('Error fetching tasks:', err);
+        setError(err.message || 'Failed to load tasks');
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error('Error loading tasks from localStorage:', err);
-      setError('Failed to load tasks');
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
+    };
 
-  // Save tasks to localStorage
-  const saveToStorage = useCallback((newTasks: Task[]) => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      const allTasks: Task[] = stored ? JSON.parse(stored) : [];
-      
-      if (!userId) return;
-      
-      // Remove old tasks for this user
-      const otherUserTasks = allTasks.filter((t: Task) => t.userId !== userId);
-      // Add new tasks for this user
-      const updatedTasks = [...otherUserTasks, ...newTasks];
-      
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedTasks));
-    } catch (err) {
-      console.error('Error saving tasks to localStorage:', err);
-    }
+    fetchTasks();
   }, [userId]);
 
   // Add a new task
-  const addTask = useCallback((title: string, description?: string) => {
+  const addTask = useCallback(async (title: string, description?: string) => {
     if (!userId) {
       setError('User not authenticated');
       return null;
     }
 
-    const newTask: Task = {
-      id: crypto.randomUUID(),
-      title,
-      description: description || '',
-      completed: false,
-      userId,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    try {
+      // Create todo via backend API
+      const newTask = await apiRequest<Task>('/api/todos/', {
+        method: 'POST',
+        body: JSON.stringify({
+          title,
+          description: description || '',
+          completed: false,
+          priority: 'medium',
+        }),
+      });
 
-    setTasks(prev => {
-      const updated = [...prev, newTask];
-      saveToStorage(updated);
-      return updated;
-    });
+      const normalizedTask: Task = {
+        id: newTask.id,
+        title: newTask.title,
+        description: newTask.description || '',
+        completed: newTask.completed,
+        userId: newTask.userId,
+        createdAt: newTask.createdAt,
+        updatedAt: newTask.updatedAt,
+      };
 
-    return newTask;
-  }, [userId, saveToStorage]);
+      setTasks(prev => [...prev, normalizedTask]);
+      return normalizedTask;
+    } catch (err: any) {
+      console.error('Error creating task:', err);
+      setError(err.message || 'Failed to create task');
+      return null;
+    }
+  }, [userId]);
 
   // Update a task
-  const updateTask = useCallback((id: string, updates: Partial<Task>) => {
-    setTasks(prev => {
-      const updated = prev.map(task => 
-        task.id === id 
-          ? { ...task, ...updates, updatedAt: new Date().toISOString() }
+  const updateTask = useCallback(async (id: string, updates: Partial<Task>) => {
+    try {
+      const updatedTask = await apiRequest<Task>(`/api/todos/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          title: updates.title,
+          description: updates.description,
+          completed: updates.completed,
+          priority: 'medium',
+        }),
+      });
+
+      setTasks(prev => prev.map(task =>
+        task.id === id
+          ? {
+              ...task,
+              title: updatedTask.title,
+              description: updatedTask.description || '',
+              completed: updatedTask.completed,
+              updatedAt: updatedTask.updatedAt,
+            }
           : task
-      );
-      saveToStorage(updated);
-      return updated;
-    });
-  }, [saveToStorage]);
+      ));
+      
+      return updatedTask;
+    } catch (err: any) {
+      console.error('Error updating task:', err);
+      setError(err.message || 'Failed to update task');
+      throw err;
+    }
+  }, []);
 
   // Delete a task
-  const deleteTask = useCallback((id: string) => {
-    setTasks(prev => {
-      const updated = prev.filter(task => task.id !== id);
-      saveToStorage(updated);
-      return updated;
-    });
-  }, [saveToStorage]);
+  const deleteTask = useCallback(async (id: string) => {
+    try {
+      await apiRequest(`/api/todos/${id}`, {
+        method: 'DELETE',
+      });
+      
+      setTasks(prev => prev.filter(task => task.id !== id));
+    } catch (err: any) {
+      console.error('Error deleting task:', err);
+      setError(err.message || 'Failed to delete task');
+      throw err;
+    }
+  }, []);
 
   // Toggle task completion
-  const toggleComplete = useCallback((id: string) => {
-    setTasks(prev => {
-      const updated = prev.map(task =>
+  const toggleComplete = useCallback(async (id: string) => {
+    try {
+      const taskToUpdate = tasks.find(t => t.id === id);
+      if (!taskToUpdate) return;
+
+      const updatedTask = await apiRequest<Task>(`/api/todos/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          completed: !taskToUpdate.completed,
+        }),
+      });
+
+      setTasks(prev => prev.map(task =>
         task.id === id
-          ? { ...task, completed: !task.completed, updatedAt: new Date().toISOString() }
+          ? {
+              ...task,
+              completed: updatedTask.completed,
+              updatedAt: updatedTask.updatedAt,
+            }
           : task
-      );
-      saveToStorage(updated);
-      return updated;
-    });
-  }, [saveToStorage]);
+      ));
+    } catch (err: any) {
+      console.error('Error toggling task:', err);
+      setError(err.message || 'Failed to update task');
+    }
+  }, [tasks]);
 
   return {
     tasks,

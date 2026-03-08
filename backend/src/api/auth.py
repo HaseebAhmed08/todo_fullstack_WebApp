@@ -93,10 +93,10 @@ def login(login_data: UserLoginRequest, session: Session = Depends(get_session))
     # Create access token
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.id},
+        data={"sub": user.id, "email": user.email, "name": user.name},
         expires_delta=access_token_expires
     )
-    
+
     return Token(access_token=access_token, token_type="bearer")
 
 @router.get("/me", response_model=UserRead)

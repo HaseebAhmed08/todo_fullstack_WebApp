@@ -58,7 +58,7 @@ const Header: React.FC = () => {
               <div className="flex items-center space-x-4">
                 <div className="hidden sm:flex flex-col items-end">
                   <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Authenticated</span>
-                  <span className="text-sm font-medium text-slate-700">
+                  <span className="text-sm font-bold text-black">
                     {session.user.name || session.user.email}
                   </span>
                 </div>
