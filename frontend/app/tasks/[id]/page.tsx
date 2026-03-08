@@ -3,28 +3,18 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { useTasks, Task } from '@/hooks/useTasks';
 import Header from '@/components/Header';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ErrorAlert from '@/components/ErrorAlert';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { taskApi, handleApiError } from '@/lib/api';
-
-interface Task {
-  id: string;
-  title: string;
-  description?: string;
-  completed: boolean;
-  userId: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
 
 const TaskDetailPage: React.FC = () => {
   const params = useParams();
   const router = useRouter();
   const { session, loading: authLoading } = useAuth();
+  const { tasks, updateTask, deleteTask } = useTasks(session?.user?.id || null);
   const [task, setTask] = useState<Task | null>(null);
-  const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,50 +27,20 @@ const TaskDetailPage: React.FC = () => {
   // Get task ID from URL
   const taskId = params.id as string;
 
-  // Fetch task details
+  // Find task from local state
   useEffect(() => {
-    const fetchTask = async () => {
-      // Check if user is authenticated before fetching task
-      if (!taskId || !session?.user?.id || authLoading) {
-        // Redirect to login if not authenticated
-        if (typeof window !== 'undefined') {
-          window.location.href = '/login';
-        }
-        return;
-      }
-
-      try {
-        setLoading(true);
-        setError(null);
-
-        // Fetch task from API
-        const fetchedTask = await taskApi.getTask(taskId) as any;
-
-        const normalizedTask: Task = {
-          id: fetchedTask.id,
-          title: fetchedTask.title,
-          description: fetchedTask.description,
-          completed: fetchedTask.completed,
-          userId: fetchedTask.user_id,
-          createdAt: new Date(fetchedTask.created_at),
-          updatedAt: new Date(fetchedTask.updated_at)
-        };
-
-        setTask(normalizedTask);
-        setFormData({
-          title: normalizedTask.title,
-          description: normalizedTask.description || '',
-          completed: normalizedTask.completed,
-        });
-      } catch (err) {
-        setError(handleApiError(err));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTask();
-  }, [taskId, session?.user?.id, authLoading]);
+    if (!taskId || !tasks) return;
+    
+    const foundTask = tasks.find(t => t.id === taskId);
+    if (foundTask) {
+      setTask(foundTask);
+      setFormData({
+        title: foundTask.title,
+        description: foundTask.description || '',
+        completed: foundTask.completed,
+      });
+    }
+  }, [taskId, tasks]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -100,8 +60,8 @@ const TaskDetailPage: React.FC = () => {
       return;
     }
 
-    if (!session?.user?.id || authLoading) {
-      setError('User not authenticated or still loading');
+    if (!taskId) {
+      setError('Task ID not found');
       return;
     }
 
@@ -109,21 +69,15 @@ const TaskDetailPage: React.FC = () => {
     setError(null);
 
     try {
-      // Update task via API
-      const updatedTask = await taskApi.updateTask(taskId, {
+      updateTask(taskId, {
         title: formData.title,
         description: formData.description,
         completed: formData.completed,
       });
-
-      setTask(updatedTask);
-      setFormData({
-        title: updatedTask.title,
-        description: updatedTask.description || '',
-        completed: updatedTask.completed,
-      });
-    } catch (err) {
-      setError(handleApiError(err));
+      router.push('/dashboard');
+    } catch (err: any) {
+      console.error('Error updating task:', err);
+      setError('Failed to update task');
     } finally {
       setUpdating(false);
     }
@@ -134,8 +88,8 @@ const TaskDetailPage: React.FC = () => {
       return;
     }
 
-    if (!session?.user?.id || authLoading) {
-      setError('User not authenticated or still loading');
+    if (!taskId) {
+      setError('Task ID not found');
       return;
     }
 
@@ -143,37 +97,19 @@ const TaskDetailPage: React.FC = () => {
     setError(null);
 
     try {
-      // Delete task via API
-      await taskApi.deleteTask(taskId);
-
-      // Redirect back to dashboard
+      deleteTask(taskId);
       router.push('/dashboard');
-    } catch (err) {
-      setError(handleApiError(err));
+    } catch (err: any) {
+      console.error('Error deleting task:', err);
+      setError('Failed to delete task');
       setDeleting(false);
     }
   };
 
-  if (loading) {
+  if (authLoading || !task) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <LoadingSpinner size="lg" />
-      </div>
-    );
-  }
-
-  if (!task) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900">Task not found</h2>
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-yellow-500 hover:bg-yellow-600"
-          >
-            Back to Dashboard
-          </button>
-        </div>
       </div>
     );
   }
@@ -273,7 +209,11 @@ const TaskDetailPage: React.FC = () => {
                   </div>
                 </form>
 
-                {error && <ErrorAlert message={error} className="mt-4" />}
+                {error && (
+                  <div className="mt-4">
+                    <ErrorAlert message={error} />
+                  </div>
+                )}
               </div>
             </div>
           </div>

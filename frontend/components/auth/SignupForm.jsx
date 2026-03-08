@@ -27,23 +27,27 @@ export default function SignupForm() {
     setError('');
 
     try {
-      // Call the signup API (without auto-login)
-      const response = await fetch('/auth/signup', {  // Updated to match backend route
+      // Call the FastAPI signup endpoint
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/auth/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          name: formData.name,
+        }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        // Show success message and redirect to login page (instead of auto-login)
+        // Show success message and redirect to login page
         alert('Account created successfully! Please log in to continue.');
-        router.push('/login'); // Redirect to login page instead of auto-login
+        router.push('/signin');
       } else {
-        setError(data.message || 'An error occurred during signup');
+        setError(data.detail || 'An error occurred during signup');
       }
     } catch (err) {
       setError('Failed to connect to server');
@@ -124,7 +128,7 @@ export default function SignupForm() {
 
           <div className="text-center text-sm text-gray-600">
             Already have an account?{' '}
-            <Link href="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
+            <Link href="/signin" className="font-medium text-indigo-600 hover:text-indigo-500">
               Sign in
             </Link>
           </div>

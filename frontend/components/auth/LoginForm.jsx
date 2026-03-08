@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { authClient } from '@/lib/auth-client';
 
 export default function LoginForm() {
   const [formData, setFormData] = useState({
@@ -26,13 +27,13 @@ export default function LoginForm() {
     setError('');
 
     try {
-      // Call the login API
-      const response = await fetch('/auth/login', {
+      // Call the FastAPI login endpoint
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/auth/login`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Type': 'application/json',
         },
-        body: new URLSearchParams({
+        body: JSON.stringify({
           email: formData.email,
           password: formData.password,
         }),
@@ -41,9 +42,8 @@ export default function LoginForm() {
       const data = await response.json();
 
       if (response.ok) {
-        // In a real app, you would save the token and redirect
-        // For this implementation, we'll just redirect to dashboard
-        localStorage.setItem('token', data.token);
+        // Store the JWT token
+        localStorage.setItem('token', data.access_token);
         router.push('/dashboard');
       } else {
         setError(data.detail || 'An error occurred during login');

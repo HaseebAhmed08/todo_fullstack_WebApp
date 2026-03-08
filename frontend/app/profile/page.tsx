@@ -1,12 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import Header from '@/components/Header';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ErrorAlert from '@/components/ErrorAlert';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { userApi, handleApiError } from '@/lib/api';
 
 const ProfilePage: React.FC = () => {
   const { session, loading: authLoading } = useAuth();
@@ -14,37 +13,19 @@ const ProfilePage: React.FC = () => {
     name: '',
     email: '',
   });
-  const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Load user profile data
-  useEffect(() => {
-    const fetchProfile = async () => {
-      // Check if user is authenticated before loading profile
-      if (!session?.user?.id || authLoading) {
-        return;
-      }
-
-      try {
-        setLoading(true);
-        // Fetch profile data from API
-        const profileData = await userApi.getProfile();
-
-        setFormData({
-          name: profileData.name || session.user.name || '',
-          email: profileData.email || session.user.email || '',
-        });
-      } catch (err) {
-        setError(handleApiError(err));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProfile();
-  }, [session?.user?.id, authLoading]);
+  // Initialize form data from session
+  React.useEffect(() => {
+    if (session?.user) {
+      setFormData({
+        name: session.user.name || '',
+        email: session.user.email || '',
+      });
+    }
+  }, [session?.user]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -82,15 +63,11 @@ const ProfilePage: React.FC = () => {
     setSuccessMessage('');
 
     try {
-      // Update profile via API
-      const response = await userApi.updateProfile({
-        name: formData.name,
-        email: formData.email,
-      });
-
-      setSuccessMessage('Profile updated successfully!');
-    } catch (err) {
-      setError(handleApiError(err));
+      // Note: Profile update would require a backend endpoint
+      // For now, we just show a success message
+      setSuccessMessage('Profile update is not yet implemented in local mode.');
+    } catch (err: any) {
+      setError(err.message || 'Failed to update profile');
     } finally {
       setUpdating(false);
     }
@@ -169,7 +146,11 @@ const ProfilePage: React.FC = () => {
                   </div>
                 </form>
 
-                {error && <ErrorAlert message={error} className="mt-4" />}
+                {error && (
+                  <div className="mt-4">
+                    <ErrorAlert message={error} />
+                  </div>
+                )}
                 {successMessage && (
                   <div className="mt-4 bg-green-100 border-l-4 border-green-500 text-green-700 p-4">
                     <p>{successMessage}</p>

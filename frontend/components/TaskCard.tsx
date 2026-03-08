@@ -2,13 +2,22 @@ import React from 'react';
 import Link from 'next/link';
 import { CheckCircle2, Circle, Trash2, Eye, Calendar, Clock } from 'lucide-react';
 
+export interface Task {
+  id: string;
+  title: string;
+  description?: string;
+  completed: boolean;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+}
+
 interface TaskCardProps {
   id: string;
   title: string;
   description?: string;
   completed: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string | Date;
+  updatedAt: string | Date;
   onToggleComplete?: (id: string) => void;
   onDelete?: (id: string) => void;
 }

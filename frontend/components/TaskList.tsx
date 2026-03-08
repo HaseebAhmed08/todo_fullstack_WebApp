@@ -1,13 +1,13 @@
 import React from 'react';
 import TaskCard from './TaskCard';
 
-interface Task {
+export interface Task {
   id: string;
   title: string;
   description?: string;
   completed: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string | Date;
+  updatedAt: string | Date;
 }
 
 interface TaskListProps {

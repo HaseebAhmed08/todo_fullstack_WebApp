@@ -1,159 +1,59 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useTasks } from '@/hooks/useTasks';
 import Header from '@/components/Header';
 import TaskList from '@/components/TaskList';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ErrorAlert from '@/components/ErrorAlert';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { taskApi, handleApiError } from '@/lib/api';
-
-interface Task {
-  id: string;
-  title: string;
-  description?: string;
-  completed: boolean;
-  userId: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
 
 const DashboardPage: React.FC = () => {
   const { session, loading: authLoading } = useAuth();
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { tasks, loading, error, addTask, updateTask, deleteTask, toggleComplete } = useTasks(session?.user?.id || null);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDescription, setNewTaskDescription] = useState('');
   const [creating, setCreating] = useState(false);
-
-  // Fetch tasks
-  useEffect(() => {
-    if (authLoading || !session?.user?.id) {
-      // Don't fetch if not logged in or still loading
-      return;
-    }
-
-    const fetchTasks = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        // Correctly pass the userId from session
-        const fetchedTasks = await taskApi.getTasks(session.user.id) as any[];
-
-        const normalizedTasks: Task[] = fetchedTasks.map((t: any) => ({
-          id: t.id,
-          title: t.title,
-          description: t.description,
-          completed: t.completed,
-          userId: t.user_id,
-          createdAt: new Date(t.created_at),
-          updatedAt: new Date(t.updated_at)
-        }));
-        setTasks(normalizedTasks);
-      } catch (err) {
-        setError(handleApiError(err));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTasks();
-  }, [session?.user?.id, authLoading]); // Only depend on the specific values we're checking
+  const [formError, setFormError] = useState<string | null>(null);
 
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!newTaskTitle.trim()) {
-      setError('Task title is required');
+      setFormError('Task title is required');
       return;
     }
 
     if (!session?.user?.id || authLoading) {
-      setError('User not authenticated or still loading');
+      setFormError('User not authenticated or still loading');
       return;
     }
 
     setCreating(true);
-    setError(null);
+    setFormError(null);
 
     try {
-      // Log the request payload for debugging
-      console.log('Creating task with payload:', {
-        title: newTaskTitle,
-        description: newTaskDescription,
-        user_id: session.user.id
-      });
+      const newTask = addTask(newTaskTitle, newTaskDescription);
 
-      const newTask = await taskApi.createTask(session.user.id, {
-        title: newTaskTitle,
-        description: newTaskDescription
-      }) as any;
-
-      console.log('Task created successfully:', newTask);
-
-      const normalizedTask: Task = {
-        id: newTask.id,
-        title: newTask.title,
-        description: newTask.description,
-        completed: newTask.completed,
-        userId: newTask.user_id,
-        createdAt: new Date(newTask.created_at),
-        updatedAt: new Date(newTask.updated_at)
-      };
-
-      setTasks(prev => [...prev, normalizedTask]);
-      setNewTaskTitle('');
-      setNewTaskDescription('');
-
-      // Success message could be added here if needed
-    } catch (err) {
+      if (newTask) {
+        setNewTaskTitle('');
+        setNewTaskDescription('');
+      }
+    } catch (err: any) {
       console.error('Error creating task:', err);
-      setError(handleApiError(err));
+      setFormError('Failed to create task');
     } finally {
       setCreating(false);
     }
   };
 
-  const handleToggleComplete = async (id: string) => {
-    if (!session?.user?.id || authLoading) {
-      setError('User not authenticated or still loading');
-      return;
-    }
-
-    try {
-      const taskToUpdate = tasks.find(task => task.id === id);
-      if (!taskToUpdate) return;
-
-      const updatedTask = await taskApi.updateTask(session.user.id, id, {
-        completed: !taskToUpdate.completed
-      }) as any;
-
-      setTasks(prev => prev.map(task =>
-        task.id === id ? {
-          ...task,
-          completed: updatedTask.completed,
-          updatedAt: new Date(updatedTask.updated_at)
-        } : task
-      ));
-    } catch (err) {
-      setError(handleApiError(err));
-    }
+  const handleToggleComplete = (id: string) => {
+    toggleComplete(id);
   };
 
-  const handleDeleteTask = async (id: string) => {
-    if (!session?.user?.id || authLoading) {
-      setError('User not authenticated or still loading');
-      return;
-    }
-
-    try {
-      await taskApi.deleteTask(session.user.id, id);
-      setTasks(prev => prev.filter(task => task.id !== id));
-    } catch (err) {
-      setError(handleApiError(err));
-    }
+  const handleDeleteTask = (id: string) => {
+    deleteTask(id);
   };
 
   return (
@@ -222,7 +122,7 @@ const DashboardPage: React.FC = () => {
             <div>
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Your Tasks</h2>
 
-              {error && <ErrorAlert message={error} />}
+              {(error || formError) && <ErrorAlert message={formError || error || ''} />}
 
               <TaskList
                 tasks={tasks}
