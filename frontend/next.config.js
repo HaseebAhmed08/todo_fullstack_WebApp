@@ -8,7 +8,20 @@ const nextConfig = {
     BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
   },
   images: {
-    domains: ['localhost', 'your-api-domain.com'], // Add your API domains here
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.netlify.app',
+      },
+      {
+        protocol: 'https',
+        hostname: 'your-api-domain.com', // Replace with your actual backend domain
+      }
+    ],
   },
 };
 
